@@ -1,20 +1,35 @@
-body {
-  text-align: center;
-  background: linear-gradient(to top, #a3d9ff, #ffffff);
-  font-family: 'Poppins', sans-serif;
-  margin: 0;
-  padding: 0;
+:root{
+  --bg1: #c7f9cc; /* light green sky */
+  --ground: #6aa84f;
+  --accent: #ffb703;
+  --text: #073b2a;
+  --card: rgba(255,255,255,0.9);
 }
 
-h1 {
-  margin-top: 20px;
-  color: #333;
-  font-size: 2rem;
-}
+*{box-sizing:border-box}
+html,body{height:100%; margin:0; font-family: Inter, Poppins, system-ui, sans-serif; color:var(--text)}
+header{text-align:center; padding:18px 12px 6px;}
+h1{margin:0; font-size:1.6rem}
+.sub{margin:6px 0 0; color:#2b6f4f; opacity:0.9}
 
-canvas {
-  background: #e0e0e0;
-  border-radius: 12px;
-  margin-top: 10px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+main{display:flex; justify-content:center; align-items:center; gap:12px; padding:10px 8px 30px}
+#game{background: linear-gradient(180deg,#dfffe0,#c7f9cc 60%); border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.12); display:block; max-width:95%; height:auto;}
+
+#hud{position:fixed; top:14px; right:18px; display:flex; gap:12px; align-items:center}
+#score{background:var(--card); padding:8px 12px; border-radius:8px; min-width:64px; text-align:center; font-weight:700}
+#mute{padding:8px 10px; border-radius:8px; border:none; background:var(--accent); cursor:pointer}
+
+footer{text-align:center; padding:12px 8px; opacity:0.85; font-size:0.9rem}
+
+/* overlay */
+#overlay{position:fixed; inset:0; display:grid; place-items:center; background:rgba(0,0,0,0.35)}
+#overlay.hidden{display:none}
+#overlay-card{background:var(--card); padding:18px 24px; border-radius:12px; text-align:center}
+#overlay-card h2{margin:0 0 6px}
+#restart{margin-top:8px; background:var(--accent); border:none; padding:8px 14px; border-radius:8px; font-weight:700; cursor:pointer}
+
+/* small responsive */
+@media (max-width:600px){
+  h1{font-size:1.2rem}
+  #overlay-card{width:90%}
 }
