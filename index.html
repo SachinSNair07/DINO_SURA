@@ -1,16 +1,39 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dino Sura 🦖</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dino Sura | Trideva Interactive</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>🦖 Dino Sura</h1>
-  <canvas id="gameCanvas" width="800" height="300"></canvas>
-  <p>Press <b>SPACE</b> or <b>Click</b> to jump!</p>
+  <header>
+    <h1>🦖 Dino Sura</h1>
+    <p class="sub">Tap or press <kbd>Space</kbd> to jump — survive as long as you can!</p>
+  </header>
+
+  <main>
+    <canvas id="game" width="900" height="300" aria-label="Dino Sura game"></canvas>
+    <div id="hud">
+      <div id="score">0</div>
+      <button id="mute">🔊</button>
+    </div>
+    <div id="overlay" class="hidden">
+      <div id="overlay-card">
+        <h2 id="ov-title">Game Over</h2>
+        <p>Score: <span id="ov-score">0</span></p>
+        <p>Best: <span id="ov-best">0</span></p>
+        <button id="restart">Play Again</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <small>Made by Trideva Interactive · Sachin S Nair</small>
+  </footer>
 
   <script src="script.js"></script>
 </body>
 </html>
+
+
