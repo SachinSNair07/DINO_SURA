@@ -1,109 +1,207 @@
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+// Dino Sura - simple endless runner
+// Place script.js in same folder as index.html and style.css
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const scoreEl = document.getElementById('score');
+  const overlay = document.getElementById('overlay');
+  const ovScore = document.getElementById('ov-score');
+  const ovBest = document.getElementById('ov-best');
+  const restartBtn = document.getElementById('restart');
+  const muteBtn = document.getElementById('mute');
 
-let dino = { x: 50, y: 200, width: 50, height: 50, dy: 0, gravity: 0.5, jumpPower: -10, grounded: true };
-let obstacles = [];
-let frame = 0;
-let gameOver = false;
-let score = 0;
+  // ASSETS (use local files in assets/ or CDN links)
+  const ASSETS = {
+    dino: 'assets/sura-run.png',       // sprite strip or single frame
+    ground: 'assets/ground.png',
+    cactus: 'assets/cactus.png',
+    bg: 'assets/palm.png',
+    jumpSfx: null,
+    hitSfx: null
+  };
 
-function drawDino() {
-  ctx.fillStyle = "#00b300";
-  ctx.fillRect(dino.x, dino.y, dino.width, dino.height);
-}
+  // Game sizing
+  const W = canvas.width = 900;
+  const H = canvas.height = 300;
 
-function drawObstacle(obs) {
-  ctx.fillStyle = "#444";
-  ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-}
+  // Player
+  const player = {
+    x: 60,
+    y: H - 70,
+    w: 48,
+    h: 48,
+    dy: 0,
+    gravity: 0.6,
+    jumpPower: -11,
+    grounded: true,
+    sprite: new Image()
+  };
+  player.sprite.src = ASSETS.dino;
 
-function drawScore() {
-  ctx.fillStyle = "#222";
-  ctx.font = "20px Arial";
-  ctx.fillText("Score: " + score, 650, 30);
-}
+  // Obstacles
+  const obstacles = [];
+  let spawnTimer = 0;
+  let spawnInterval = 90; // frames
+  let speed = 5; // base scroll speed
+  let speedIncreaseEvery = 600; // frames
+  let frameCount = 0;
 
-function update() {
-  if (gameOver) return;
+  // Score and state
+  let score = 0;
+  let best = Number(localStorage.getItem('dino_sura_best') || 0);
+  let running = true;
+  let muted = false;
 
-  frame++;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // Ground
-  ctx.fillStyle = "#666";
-  ctx.fillRect(0, 250, canvas.width, 50);
-
-  // Jump Physics
-  dino.y += dino.dy;
-  dino.dy += dino.gravity;
-
-  if (dino.y > 200) {
-    dino.y = 200;
-    dino.dy = 0;
-    dino.grounded = true;
+  function resetGame() {
+    obstacles.length = 0;
+    player.y = H - 70;
+    player.dy = 0;
+    player.grounded = true;
+    spawnTimer = 0;
+    score = 0;
+    speed = 5;
+    frameCount = 0;
+    running = true;
+    overlay.classList.add('hidden');
+    requestAnimationFrame(loop);
   }
 
-  // Spawn obstacles
-  if (frame % 90 === 0) {
-    obstacles.push({ x: canvas.width, y: 220, width: 30, height: 30 });
+  function spawn() {
+    // random size cactus/rock
+    const h = 30 + Math.round(Math.random()*30);
+    obstacles.push({
+      x: W + 30,
+      y: H - 50 - (h-30),
+      w: 28 + Math.round(Math.random()*20),
+      h: h,
+      passed: false
+    });
   }
 
-  // Move & draw obstacles
-  obstacles.forEach((obs, index) => {
-    obs.x -= 5;
-    drawObstacle(obs);
+  function update() {
+    frameCount++;
+    // difficulty ramp
+    if(frameCount % speedIncreaseEvery === 0) speed += 0.5;
 
-    // Collision check
-    if (
-      dino.x < obs.x + obs.width &&
-      dino.x + dino.width > obs.x &&
-      dino.y + dino.height > obs.y
-    ) {
-      gameOver = true;
+    // spawn control
+    spawnTimer++;
+    if (spawnTimer >= spawnInterval) {
+      spawn();
+      spawnTimer = 0;
+      // slightly vary spawn interval
+      spawnInterval = 80 + Math.floor(Math.random()*50);
     }
 
-    // Remove off-screen
-    if (obs.x + obs.width < 0) obstacles.splice(index, 1);
+    // apply physics
+    player.dy += player.gravity;
+    player.y += player.dy;
+    if (player.y + player.h >= H - 20) {
+      player.y = H - 20 - player.h;
+      player.dy = 0;
+      player.grounded = true;
+    } else {
+      player.grounded = false;
+    }
+
+    // move obstacles
+    for (let i = obstacles.length-1; i >= 0; i--) {
+      const ob = obstacles[i];
+      ob.x -= speed;
+      // scoring
+      if (!ob.passed && ob.x + ob.w < player.x) {
+        score++;
+        ob.passed = true;
+      }
+      // remove offscreen
+      if (ob.x + ob.w < -50) obstacles.splice(i,1);
+      // collision
+      if (rectIntersect(player, ob)) {
+        running = false;
+        gameOver();
+      }
+    }
+  }
+
+  function draw() {
+    // clear
+    ctx.clearRect(0,0,W,H);
+
+    // background: simple green hills & palms
+    ctx.fillStyle = '#c7f9cc';
+    ctx.fillRect(0,0,W,H);
+    // ground
+    ctx.fillStyle = '#6aa84f';
+    ctx.fillRect(0,H-20,W,20);
+
+    // draw obstacles
+    ctx.fillStyle = '#4b5320';
+    for (const ob of obstacles) {
+      // simple cactus drawing
+      ctx.fillStyle = '#2f6f2f';
+      ctx.fillRect(ob.x, ob.y, ob.w, ob.h);
+      ctx.fillStyle = '#1e4d1e';
+      ctx.fillRect(ob.x+2, ob.y + ob.h - 6, ob.w-4, 4);
+    }
+
+    // draw player (if sprite loaded use it, else rectangle)
+    if (player.sprite.complete && player.sprite.naturalWidth) {
+      ctx.drawImage(player.sprite, player.x, player.y, player.w, player.h);
+    } else {
+      ctx.fillStyle = '#ff8a00';
+      ctx.fillRect(player.x, player.y, player.w, player.h);
+    }
+
+    // HUD
+    scoreEl.textContent = score;
+  }
+
+  function loop() {
+    if (!running) return;
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function rectIntersect(a,b){
+    return !( a.x + a.w < b.x || a.x > b.x + b.w || a.y + a.h < b.y || a.y > b.y + b.h );
+  }
+
+  function jump(){
+    if (!running) return;
+    if (player.grounded) {
+      player.dy = player.jumpPower;
+      player.grounded = false;
+    }
+  }
+
+  function gameOver(){
+    overlay.classList.remove('hidden');
+    document.getElementById('ov-score').textContent = score;
+    best = Math.max(best, score);
+    localStorage.setItem('dino_sura_best', best);
+    document.getElementById('ov-best').textContent = best;
+    // stop running flag
+    running = false;
+  }
+
+  // Input
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      if (!running) resetGame(); else jump();
+      e.preventDefault();
+    }
+  });
+  canvas.addEventListener('click', () => {
+    if (!running) resetGame(); else jump();
   });
 
-  drawDino();
-  drawScore();
+  // Buttons
+  restartBtn.addEventListener('click', resetGame);
+  muteBtn.addEventListener('click', () => {
+    muted = !muted;
+    muteBtn.textContent = muted ? '🔇' : '🔊';
+  });
 
-  // Increase score
-  if (frame % 5 === 0) score++;
-
-  if (gameOver) {
-    ctx.fillStyle = "red";
-    ctx.font = "30px Arial";
-    ctx.fillText("Game Over!", 320, 150);
-    ctx.font = "20px Arial";
-    ctx.fillText("Press SPACE or Click to Restart", 270, 180);
-  } else {
-    requestAnimationFrame(update);
-  }
-}
-
-function jump() {
-  if (dino.grounded && !gameOver) {
-    dino.dy = dino.jumpPower;
-    dino.grounded = false;
-  } else if (gameOver) {
-    resetGame();
-  }
-}
-
-function resetGame() {
-  obstacles = [];
-  frame = 0;
-  gameOver = false;
-  score = 0;
-  dino.y = 200;
-  update();
-}
-
-document.addEventListener("keydown", (e) => {
-  if (e.code === "Space") jump();
-});
-canvas.addEventListener("click", jump);
-
-update();
+  // start
+  resetGame();
+})();
